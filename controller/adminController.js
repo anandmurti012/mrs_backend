@@ -26,8 +26,8 @@ exports.getAllDoctors = (req, res) => {
 };
 
 exports.addDoctor = (req, res) => {
-  const { name, docId,phone, address, consultation, experience, specialization, availability } = req.body;
-
+  const { name, docId, phone, address, consultation, experience, specialization, availability } = req.body;
+  console.log(req.body)
   if (!name || !docId) {
     return res.status(400).json({ message: 'DocName and DocId are required' });
   }
@@ -35,7 +35,7 @@ exports.addDoctor = (req, res) => {
   // Convert availability array to JSON string
   const availabilityString = JSON.stringify(availability);  // Or you can use availability.join(',')
 
-  const newDoctor = { name, docId,phone, address,consultation, experience, specialization, availability };
+  const newDoctor = { name, docId, phone, address, consultation, experience, specialization, availability };
 
   console.log("newDoctor", newDoctor);
 
@@ -52,12 +52,12 @@ exports.addDoctor = (req, res) => {
   });
 };
 
- 
+
 
 exports.doctorName = (req, res) => {
   // SQL query to fetch both doctor name and specialization
   const sql = 'SELECT name, specialization, availability FROM doctors';
-// console.log("all doctors:::::::", sql);
+  // console.log("all doctors:::::::", sql);
   Doctor.getAll(sql, (err, results) => {
     if (err) {
       console.error('Error retrieving doctors:', err);
@@ -69,7 +69,7 @@ exports.doctorName = (req, res) => {
 };
 
 
- 
+
 
 exports.createAdmin = async (req, res) => {
   const { adminName, emailId, address, phoneNo, passCode, password } = req.body;
@@ -111,49 +111,49 @@ exports.createAdmin = async (req, res) => {
 };
 
 
- 
+
 exports.loginAdmin = async (req, res) => {
   try {
-      // console.log(req.body);
-      const { email, password } = req.body;
+    // console.log(req.body);
+    const { email, password } = req.body;
 
-      connection.query(`SELECT * FROM admins WHERE emailId='${email}'`, async (error, results) => {
-        
-          if (error) {
-              return res.status(500).json({ msg: error.sqlMessage || 'Database query error' });
+    connection.query(`SELECT * FROM admins WHERE emailId='${email}'`, async (error, results) => {
+
+      if (error) {
+        return res.status(500).json({ msg: error.sqlMessage || 'Database query error' });
+      } else {
+        if (results.length === 0) {
+          // No user found with that email
+          return res.status(404).json({ msg: 'User not found' });
+        }
+        const user = results[0];
+        console.log("user::", user);
+        try {
+          // const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
+          // // console.log(jwt.verify(token,JWT_SECRET))
+
+          // return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
+          // Compare the provided password with the hashed password in the database
+          const isMatch = await bcrypt.compare(password, user.password);
+          console.log("ismatch.....", isMatch, password, user.password);
+
+          if (isMatch) {
+
+            const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
+            // console.log(jwt.verify(token,JWT_SECRET))
+
+            return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
           } else {
-              if (results.length === 0) {
-                  // No user found with that email
-                  return res.status(404).json({ msg: 'User not found' });
-              }
-              const user = results[0];
-              console.log("user::", user);
-              try {
-                // const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
-                // // console.log(jwt.verify(token,JWT_SECRET))
-
-                // return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
-                  // Compare the provided password with the hashed password in the database
-                  const isMatch = await bcrypt.compare(password, user.password);
-                  console.log("ismatch.....", isMatch,password, user.password);
-
-                  if (isMatch) {
-
-                      const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
-                      // console.log(jwt.verify(token,JWT_SECRET))
-
-                      return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
-                  } else {
-                      return res.status(401).json({ msg: 'Invalid credentials' });
-                  }
-              } catch (compareError) {
-                  console.error('Error comparing passwords:', compareError);
-                  return res.status(500).json({ msg: 'Error comparing passwords' });
-              }
+            return res.status(401).json({ msg: 'Invalid credentials' });
           }
-      });
+        } catch (compareError) {
+          console.error('Error comparing passwords:', compareError);
+          return res.status(500).json({ msg: 'Error comparing passwords' });
+        }
+      }
+    });
   } catch (error) {
-      console.log('Backend Server Error', error);
-      return res.status(500).json({ msg: "Backend Server Error" });
+    console.log('Backend Server Error', error);
+    return res.status(500).json({ msg: "Backend Server Error" });
   }
 }
