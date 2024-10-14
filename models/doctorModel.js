@@ -25,8 +25,9 @@ Doctor.create = (doctorData, callback) => {
 };
  
 // Get all doctors
-Doctor.getAll = (sql, callback) => {
-  connection.query(sql, callback);
+Doctor.getAll = (callback) => {
+  const sql1 = 'SELECT * FROM doctors';
+  connection.query(sql1, callback);
 };
 
 // Get availability by doctor ID

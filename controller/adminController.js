@@ -26,7 +26,7 @@ exports.getAllDoctors = (req, res) => {
 };
 
 exports.addDoctor = (req, res) => {
-  const { name, docId, experience, specialization, availability } = req.body;
+  const { name, docId,phone, address, consultation, experience, specialization, availability } = req.body;
 
   if (!name || !docId) {
     return res.status(400).json({ message: 'DocName and DocId are required' });
@@ -35,7 +35,7 @@ exports.addDoctor = (req, res) => {
   // Convert availability array to JSON string
   const availabilityString = JSON.stringify(availability);  // Or you can use availability.join(',')
 
-  const newDoctor = { name, docId, experience, specialization, availability };
+  const newDoctor = { name, docId,phone, address,consultation, experience, specialization, availability };
 
   console.log("newDoctor", newDoctor);
 
@@ -72,11 +72,11 @@ exports.doctorName = (req, res) => {
  
 
 exports.createAdmin = async (req, res) => {
-  const { adminName, emailId, address, phoneNo, password } = req.body;
+  const { adminName, emailId, address, phoneNo, passCode, password } = req.body;
 
   // Check for required fields
-  if (!adminName || !emailId || !password) {
-    return res.status(400).json({ message: 'Admin Name, Email Id, and Password are required' });
+  if (!adminName || !emailId || !passCode || !password) {
+    return res.status(400).json({ message: 'Admin Name, Email Id, passCode, and Password are required' });
   }
 
   try {
@@ -89,6 +89,7 @@ exports.createAdmin = async (req, res) => {
       emailId,
       address,
       phoneNo,
+      passCode,
       password: hashedPassword,  // Store the hashed password
     };
 
