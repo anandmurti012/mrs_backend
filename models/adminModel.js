@@ -39,6 +39,12 @@ Admin.findByEmail = (emailId, callback) => {
   });
 };
 
+//getAllAdmin
+Admin.getAll = (callback) => {
+  const sql1 = 'SELECT * FROM admins';
+  connection.query(sql1, callback);
+};
+
 // Update an admin's information
 // Admin.update = (adminId, adminData, callback) => {
 //   const sql = 'UPDATE admins SET ? WHERE id = ?';

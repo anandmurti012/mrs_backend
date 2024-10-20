@@ -21,12 +21,16 @@ const connection = require('../database/db');
 const User = {};
 
 User.create = (userData, callback) => {
-  const sql = 'INSERT INTO users SET ?';
+  const sql = 'INSERT INTO bookings SET ?';
+  connection.query(sql, userData, callback);
+};
+User.createByAdmin = (userData, callback) => {
+  const sql = 'INSERT INTO bookings SET ?';
   connection.query(sql, userData, callback);
 };
 
 User.getAll = (callback) => {
-  const sql = 'SELECT * FROM users';
+  const sql = 'SELECT * FROM bookings';
   connection.query(sql, callback);
 };
 
