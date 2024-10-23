@@ -19,6 +19,7 @@ connection.connect((err) => {
 
 module.exports = connection;
 
+
 // const pool = mysql.createPool({
 //   connectionLimit: 10, // Adjust the limit based on your application's requirements
 //   host: process.env.DB_HOST,
