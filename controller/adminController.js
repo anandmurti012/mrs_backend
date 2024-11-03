@@ -3,9 +3,10 @@ const Admin = require('../models/adminModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const connection = require('../database/db');
-const JWT_SECRET = process.env.JWT_SECRET;
-console.log("doctorrrr:", Doctor);
-console.log("Adminsss:", Admin)
+const dotenv = require('dotenv')
+dotenv.config()
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 // Get all doctors
 exports.getAllDoctors = (req, res) => {
@@ -36,8 +37,6 @@ exports.addDoctor = (req, res) => {
   const availabilityString = JSON.stringify(availability);  // Or you can use availability.join(',')
 
   const newDoctor = { name, docId, phone, address, consultation, experience, specialization, availability };
-
-  console.log("newDoctor", newDoctor);
 
   Doctor.create(newDoctor, (err, result) => {
     if (err) {
@@ -77,7 +76,7 @@ exports.createAdmin = async (req, res) => {
 
   try {
     // Hash the password with bcrypt
-    const hashedPassword = await bcrypt.hash(password, 10); // Hashing once
+    // const hashedPassword = await bcrypt.hash(password, 10); // Hashing once
 
     // Create new admin object
     const newAdmin = {
@@ -86,7 +85,7 @@ exports.createAdmin = async (req, res) => {
       address,
       phoneNo,
       passCode,
-      password: hashedPassword,  // Store the hashed password
+      password: password,  // Store the hashed password
     };
 
     // Save the new admin to the database
@@ -123,7 +122,6 @@ exports.getAllAdmin = (req, res) => {
 
 exports.loginAdmin = async (req, res) => {
   try {
-    // console.log(req.body);
     const { email, password } = req.body;
 
     connection.query(`SELECT * FROM admins WHERE emailId='${email}'`, async (error, results) => {
@@ -135,29 +133,16 @@ exports.loginAdmin = async (req, res) => {
           // No user found with that email
           return res.status(404).json({ msg: 'User not found' });
         }
+
         const user = results[0];
-        console.log("user::", user);
-        try {
+        if (password === user.password) {
+          const email = user.email
+
           const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
-          // console.log(jwt.verify(token,JWT_SECRET))
+          return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
+        } else {
+          return res.status(401).json({ msg: "Invalid Password" });
 
-          // return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
-          // Compare the provided password with the hashed password in the database
-          // const isMatch = await bcrypt.compare(password, user.password);
-          // console.log("ismatch.....", isMatch, password, user.password);
-
-          if (1===1) {
-
-            // const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
-            // console.log(jwt.verify(token,JWT_SECRET))
-
-            return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
-          } else {
-            return res.status(401).json({ msg: 'Invalid credentials' });
-          }
-        } catch (compareError) {
-          console.error('Error comparing passwords:', compareError);
-          return res.status(500).json({ msg: 'Error comparing passwords' });
         }
       }
     });
