@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const doctorsRoutes = require('./routes/doctorRoutes');
 const bodyParser = require('body-parser');
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api', bookingRoutes);
 app.use('/api', adminRoutes);
+app.use('/api/doctors', doctorsRoutes); // Add the doctors route
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

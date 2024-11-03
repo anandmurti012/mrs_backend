@@ -84,6 +84,7 @@
  
 //==============================//==============================
 const Booking = require('../models/bookingModel');
+const db = require('../database/db');
 
 // Get all users
 exports.getAllBookings = (req, res) => {
@@ -174,7 +175,7 @@ exports.confirmBooking = (req, res) => {
   console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  Booking.query(query, ['Confirmed', bookingId], (err, result) => {
+  db.query(query, ['Confirmed', bookingId], (err, result) => {
     if (err) {
       console.error('Error confirming booking:', err);
       return res.status(500).json({ message: 'Error confirming booking' });
@@ -192,7 +193,7 @@ exports.cancelBooking = (req, res) => {
   console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  Booking.query(query, ['Cancelled',bookingId], (err, result) => {
+  db.query(query, ['Cancelled',bookingId], (err, result) => {
     if (err) {
       console.error('Error canceling booking:', err);
       return res.status(500).json({ message: 'Error canceling booking' });
