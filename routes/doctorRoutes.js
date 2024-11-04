@@ -1,43 +1,50 @@
 const express = require('express');
-const router = express.Router();
+const doctorRouter = express.Router();
 const db = require('../database/db'); // Import your MySQL connection
+const connection = require('../database/db');
+
 
 // Update doctor details
-router.put('/edit/:id', async (req, res) => {
-  const doctorId = req.params.id;
-  const { name, specialization, phone, address, consultation, availability } = req.body;
+doctorRouter.patch('/update-doctors', async (req, res) => {
+  const { name, id, phone, address, consultation } = req.body;
+
+  // Check if the required fields are provided
+  if (!id) {
+    return res.status(400).json({ error: "Doctor ID is required." });
+  }
+
+  // Construct the update query
+  const query = `UPDATE doctors SET 
+                   name = ?, 
+                   phone = ?, 
+                   address = ?, 
+                   consultation = ? 
+                 WHERE id = ?`;
+
+  // Prepare the parameters for the query
+  const queryParams = [name, phone, address, consultation, id];
 
   try {
-    // Update doctor basic info in the 'doctors' table
-    const updateDoctorQuery = `
-      UPDATE doctors 
-      SET name = ?, specialization = ?, phone = ?, address = ?, consultation = ?
-      WHERE id = ?
-    `;
-    await db.query(updateDoctorQuery, [name, specialization, phone, address, consultation, doctorId]);
-
-    // Delete existing availability slots for the doctor
-    const deleteAvailabilityQuery = `
-      DELETE FROM doctor_availability WHERE doctorId = ?
-    `;
-    await db.query(deleteAvailabilityQuery, [doctorId]);
-
-    // Insert new availability slots
-    const insertAvailabilityQuery = `
-      INSERT INTO doctor_availability (doctorId, day, startTime, endTime)
-      VALUES (?, ?, ?, ?)
-    `;
-    for (let slot of availability) {
-      for (let timeSlot of slot.timeSlots) {
-        await db.query(insertAvailabilityQuery, [doctorId, slot.day, timeSlot.startTime, timeSlot.endTime]);
+    // Execute the update query
+    connection.query(query, queryParams, (error, results) => {
+      if (error) {
+        console.error("Error executing query:", error); // Log the error
+        return res.status(500).json({ msg: error.sqlMessage }); // Send error response
       }
-    }
 
-    res.status(200).json({ message: 'Doctor updated successfully' });
+      // Check if any row was affected
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ msg: "Doctor not found." }); // Handle case where no rows were updated
+      }
+
+      // Return success response
+      return res.status(200).json({ msg: "Doctor updated successfully." });
+    });
+
   } catch (error) {
     console.error('Error updating doctor:', error);
     res.status(500).json({ error: 'Failed to update doctor' });
   }
 });
 
-module.exports = router;
+module.exports = doctorRouter;

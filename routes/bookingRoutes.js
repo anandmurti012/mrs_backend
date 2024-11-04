@@ -19,10 +19,11 @@ const {
   confirmBooking,  // Controller for confirming booking
   cancelBooking    // Controller for canceling booking
 } = require('../controller/bookingController');
+const { VerifyToken } = require('../middleware/verifyToken');
 const router = express.Router();
 
 // Existing routes
-router.get('/bookings', getAllBookings);
+router.get('/bookings',VerifyToken, getAllBookings);
 router.post('/bookings', createBooking);
 router.post('/adminCreates', createBookingByAdmin);
 router.get('/doctorAvailability/:doctor', getDoctorAvailability); 

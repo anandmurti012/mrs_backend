@@ -87,7 +87,7 @@ const Booking = require('../models/bookingModel');
 const db = require('../database/db');
 const connection = require('../database/db');
 
-exports.getAllBookings = async (req, res) => {
+exports.getAllBookings = async (req, res) => {  
   const { searchTerm, status } = req.query; // Corrected variable name to 'status'
 
   // Start building the query
