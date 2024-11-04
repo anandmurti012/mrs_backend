@@ -81,22 +81,49 @@
 //   });
 // };
 
- 
+
 //==============================//==============================
 const Booking = require('../models/bookingModel');
 const db = require('../database/db');
+const connection = require('../database/db');
 
-// Get all users
-exports.getAllBookings = (req, res) => {
-  Booking.getAll((err, results) => {
-    if (err) {
-      console.error('Error retrieving Booking:', err);
-      res.status(500).json({ message: 'Error retrieving users' });
-    } else {
-      res.status(200).json(results);
-    }
-  });
+exports.getAllBookings = async (req, res) => {
+  const { searchTerm, status } = req.query; // Corrected variable name to 'status'
+
+  // Start building the query
+  let query = "SELECT * FROM bookings WHERE 1=1"; 
+  const queryParams = []; // Array to hold query parameters
+
+  // Construct the SQL query based on query parameters
+  if (searchTerm) {
+    query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+    const searchTermPattern = `%${searchTerm}%`;
+    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+  }
+
+  if (status) {
+    query += " AND status = ?";
+    queryParams.push(status);
+  }
+
+  try {
+    // Use a prepared statement to prevent SQL injection
+    connection.query(query, queryParams, (error, results) => {
+      if (error) {
+        console.error("Error executing query:", error); // Log the error
+        return res.status(500).json({ msg: error.sqlMessage }); // Send error response
+      }
+
+      // Return the results as a JSON response
+      return res.status(200).json(results);
+    });
+  } catch (error) {
+    console.error("Error fetching bookings:", error); // Log the error
+    return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
+  }
 };
+
+
 
 // Create a new user
 exports.createBooking = (req, res) => {
@@ -193,7 +220,7 @@ exports.cancelBooking = (req, res) => {
   console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  db.query(query, ['Cancelled',bookingId], (err, result) => {
+  db.query(query, ['Cancelled', bookingId], (err, result) => {
     if (err) {
       console.error('Error canceling booking:', err);
       return res.status(500).json({ message: 'Error canceling booking' });
