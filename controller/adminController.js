@@ -67,42 +67,50 @@ exports.doctorName = (req, res) => {
 
 
 exports.createAdmin = async (req, res) => {
-  const { adminName, emailId, address, phoneNo, passCode, password } = req.body;
+  const { adminName, emailId, address, phoneNo, passCode, password } = req.body.values;
 
-  // Check for required fields
-  if (!adminName || !emailId || !passCode || !password) {
-    return res.status(400).json({ message: 'Admin Name, Email Id, passCode, and Password are required' });
+  if (req.rootUser.passCode !== req.body.adminPasscode) {
+    return res.status(401).json({ msg: 'Invalid Passcode' });
   }
 
-  try {
-    // Hash the password with bcrypt
-    // const hashedPassword = await bcrypt.hash(password, 10); // Hashing once
 
-    // Create new admin object
-    const newAdmin = {
-      adminName,
-      emailId,
-      address,
-      phoneNo,
-      passCode,
-      password: password,  // Store the hashed password
-    };
+  connection.query(`SELECT emailId FROM admins WHERE emailId='${emailId}'`, async function (error, result) {
+    if (error) {
+      return res.status(404).json({ msg: error.sqlMessage });
+    } else {
+      if (result.length === 0) {
+        // Check for required fields
+        if (!adminName || !emailId || !passCode || !password) {
+          return res.status(400).json({ message: 'Admin Name, Email Id, passCode, and Password are required' });
+        }
 
-    // Save the new admin to the database
-    Admin.create(newAdmin, (err, result) => {
-      if (err) {
-        console.error('Error creating Admin:', err);
-        return res.status(500).json({ message: 'Error creating Admin' });
+        // Create new admin object
+        const newAdmin = {
+          adminName,
+          emailId,
+          address,
+          phoneNo,
+          passCode,
+          password: password,  // Store the hashed password
+        };
+
+        // Save the new admin to the database
+        Admin.create(newAdmin, (err, result) => {
+          if (err) {
+            console.error('Error creating Admin:', err);
+            return res.status(500).json({ message: 'Error creating Admin' });
+          }
+
+          res.status(201).json({
+            message: 'Admin added successfully'
+          });
+        });
+
+      } else {
+        return res.status(409).json({ msg: 'Enter email id already exist,try another email' });
       }
-      res.status(201).json({
-        message: 'Admin added successfully',
-        adminId: result.insertId,
-      });
-    });
-  } catch (error) {
-    console.error('Error hashing password:', error);
-    res.status(500).json({ message: 'Error creating Admin' });
-  }
+    }
+  });
 };
 
 exports.getAllAdmin = (req, res) => {
@@ -135,8 +143,8 @@ exports.loginAdmin = async (req, res) => {
         }
 
         const user = results[0];
-        if (password === user.password) {
-          const email = user.email
+        if (bcrypt.compare(password, user.password)) {
+          const email = user.emailId
 
           const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
           return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
