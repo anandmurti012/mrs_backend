@@ -88,7 +88,7 @@ const db = require('../database/db');
 const connection = require('../database/db');
 
 exports.getAllBookings = async (req, res) => {  
-  const { searchTerm, status } = req.query; // Corrected variable name to 'status'
+  const { searchTerm,searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
 
   // Start building the query
   let query = "SELECT * FROM bookings WHERE 1=1"; 
@@ -98,6 +98,11 @@ exports.getAllBookings = async (req, res) => {
   if (searchTerm) {
     query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
     const searchTermPattern = `%${searchTerm}%`;
+    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+  }
+  if (searchDoctorTerm) {
+    query += " AND (doctor LIKE ?)";
+    const searchTermPattern = `%${searchDoctorTerm}%`;
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
   }
 
@@ -129,6 +134,7 @@ exports.getAllBookings = async (req, res) => {
 exports.createBooking = (req, res) => {
   const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName } = req.body;
 
+  console.log("req body:::::>", req.body);
   if (!name || !email || !phone) {
     return res.status(400).json({ message: 'Name, email, and phone are required' });
   }

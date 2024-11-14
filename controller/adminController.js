@@ -26,6 +26,23 @@ exports.getAllDoctors = (req, res) => {
   });
 };
 
+// exports.doctorRouter = (req, res) => {
+//   const query = `SELECT * FROM doctors WHERE status = 'Active'`;
+
+//   try {
+//     connection.query(query, (error, results) => {
+//       if (error) {
+//         console.error("Error fetching doctors:", error);
+//         return res.status(500).json({ msg: error.sqlMessage });
+//       }
+//       res.status(200).json(results);
+//     });
+//   } catch (error) {
+//     console.error("Error fetching doctors:", error);
+//     res.status(500).json({ error: "Failed to fetch doctors" });
+//   }
+// };
+
 exports.addDoctor = (req, res) => {
   const { name, docId, phone, address, consultation, experience, specialization, availability } = req.body;
   console.log(req.body)
@@ -54,7 +71,7 @@ exports.addDoctor = (req, res) => {
 
 
 exports.doctorName = (req, res) => {
-  const sql = 'SELECT name, specialization FROM doctors';
+  const sql = `SELECT name, specialization FROM doctors WHERE status = 'Active'`;
   connection.query(sql, (err, results) => {
     if (err) {
       console.error('Error retrieving doctors:', err);
