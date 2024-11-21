@@ -128,6 +128,27 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
+exports.getBookingData = async (req, res) => {
+  try {
+    // Query to fetch all bookings
+    const query = "SELECT * FROM bookings";
+    console.log("query booking::::", query);
+
+    // Execute the query
+    connection.query(query, (error, results) => {
+      if (error) {
+        console.error("Error fetching booking data:", error); // Log the error
+        return res.status(500).json({ message: "Error fetching booking data" }); // Send error response
+      }
+
+      // Return the fetched data as a JSON response
+      return res.status(200).json(results);
+    });
+  } catch (error) {
+    console.error("Unexpected error in getBookingData:", error); // Log unexpected errors
+    return res.status(500).json({ message: "Unexpected error occurred" }); // Send error response
+  }
+};
 
 
 // Create a new user
@@ -149,7 +170,12 @@ exports.createBooking = (req, res) => {
     } else {
       res.status(201).json({
         message: 'User added successfully',
-        bookingId: result.insertId
+        bookingId: result.insertId,
+        name:name,
+        address:address,
+        phone:phone,
+        doctor:doctor,
+        timeSlot:timeSlot      
       });
     }
   });

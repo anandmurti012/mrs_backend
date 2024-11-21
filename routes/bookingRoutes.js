@@ -17,13 +17,15 @@ const {
   getDoctorAvailability,
   createBookingByAdmin,
   confirmBooking,  // Controller for confirming booking
-  cancelBooking    // Controller for canceling booking
+  cancelBooking,
+  getBookingData    // Controller for canceling booking
 } = require('../controller/bookingController');
 const { VerifyToken } = require('../middleware/verifyToken');
 const router = express.Router();
 
 // Existing routes
 router.get('/bookings',VerifyToken, getAllBookings);
+router.get('/bookingdata', getBookingData);
 router.post('/bookings', createBooking);
 router.post('/adminCreates', createBookingByAdmin);
 router.get('/doctorAvailability/:doctor', getDoctorAvailability); 
