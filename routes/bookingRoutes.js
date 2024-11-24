@@ -13,6 +13,7 @@
 const express = require('express');
 const {
   getAllBookings,
+  getConfirmedBookings,
   createBooking,
   getDoctorAvailability,
   createBookingByAdmin,
@@ -25,6 +26,7 @@ const router = express.Router();
 
 // Existing routes
 router.get('/bookings',VerifyToken, getAllBookings);
+router.get('/confirmBookings',VerifyToken, getConfirmedBookings);
 router.get('/bookingdata', getBookingData);
 router.post('/bookings', createBooking);
 router.post('/adminCreates', createBookingByAdmin);

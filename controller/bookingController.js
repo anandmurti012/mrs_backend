@@ -127,7 +127,47 @@ exports.getAllBookings = async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
   }
 };
+exports.getConfirmedBookings = async (req, res) => {  
+  const { searchTerm,searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
 
+  // Start building the query
+  let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
+
+  const queryParams = []; // Array to hold query parameters
+
+  // Construct the SQL query based on query parameters
+  if (searchTerm) {
+    query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+    const searchTermPattern = `%${searchTerm}%`;
+    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+  }
+  if (searchDoctorTerm) {
+    query += " AND (doctor LIKE ?)";
+    const searchTermPattern = `%${searchDoctorTerm}%`;
+    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+  }
+
+  if (status) {
+    query += " AND status = ?";
+    queryParams.push(status);
+  }
+
+  try {
+    // Use a prepared statement to prevent SQL injection
+    connection.query(query, queryParams, (error, results) => {
+      if (error) {
+        console.error("Error executing query:", error); // Log the error
+        return res.status(500).json({ msg: error.sqlMessage }); // Send error response
+      }
+
+      // Return the results as a JSON response
+      return res.status(200).json(results);
+    });
+  } catch (error) {
+    console.error("Error fetching bookings:", error); // Log the error
+    return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
+  }
+};
 exports.getBookingData = async (req, res) => {
   try {
     // Query to fetch all bookings
