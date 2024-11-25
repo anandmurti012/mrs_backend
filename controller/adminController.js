@@ -149,28 +149,33 @@ exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    connection.query(`SELECT * FROM admins WHERE emailId='${email}'`, async (error, results) => {
-
-      if (error) {
-        return res.status(500).json({ msg: error.sqlMessage || 'Database query error' });
-      } else {
-        if (results.length === 0) {
-          // No user found with that email
-          return res.status(404).json({ msg: 'User not found' });
-        }
-
-        const user = results[0];
-        if (bcrypt.compare(password, user.password)) {
-          const email = user.emailId
-
-          const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
-          return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
+    if (!email) {
+      return res.status(401).json({ msg: 'Please enter valid user id' })
+    } else if (!password) {
+      return res.status(401).json({ msg: 'Please enter valid password' })
+    } else {
+      connection.query(`SELECT * FROM admins WHERE emailId='${email}'`, async (error, results) => {
+        if (error) {
+          return res.status(500).json({ msg: error.sqlMessage || 'Database query error' });
         } else {
-          return res.status(401).json({ msg: "Invalid Password" });
+          if (results.length === 0) {
+            // No user found with that email
+            return res.status(404).json({ msg: 'User not found' });
+          }
 
+          const user = results[0];
+          if (bcrypt.compare(password, user.password)) {
+            const email = user.emailId
+
+            const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
+            return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
+          } else {
+            return res.status(401).json({ msg: "Invalid Password" });
+
+          }
         }
-      }
-    });
+      });
+    }
   } catch (error) {
     console.log('Backend Server Error', error);
     return res.status(500).json({ msg: "Backend Server Error" });
