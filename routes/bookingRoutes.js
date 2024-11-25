@@ -1,15 +1,3 @@
-// const express = require('express');
-// const { getAllBookings, createBooking, getDoctorAvailability,createBookingByAdmin } = require('../controller/bookingController');
-// const router = express.Router();
-
-// router.get('/bookings', getAllBookings);
-// router.post('/bookings', createBooking);
-// router.post('/adminCreates', createBookingByAdmin);
-// router.get('/doctorAvailability/:doctor', getDoctorAvailability); // New route to get availability
-
-// module.exports = router;
-
-//==============================//===========================
 const express = require('express');
 const {
   getAllBookings,
@@ -17,11 +5,12 @@ const {
   createBooking,
   getDoctorAvailability,
   createBookingByAdmin,
-  confirmBooking,  // Controller for confirming booking
+  confirmBooking, 
   cancelBooking,
-  getBookingData    // Controller for canceling booking
+  getBookingData    
 } = require('../controller/bookingController');
-const { VerifyToken } = require('../middleware/verifyToken');
+
+const { VerifyToken } = require('../middleware/VerifyToken');
 const router = express.Router();
 
 // Existing routes

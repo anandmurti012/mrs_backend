@@ -4,7 +4,7 @@
   "main": "server.js",
   "description": "Backend for Node.js + MySQL application",
   "scripts": {
-    "start": "nodemon node index.js",
+    "start": "nodemon index.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],

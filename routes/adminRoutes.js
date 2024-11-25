@@ -1,11 +1,9 @@
 const express = require('express');
-const { addDoctor, getAllDoctors, doctorName, doctorRouter,createAdmin, loginAdmin, getAllAdmin } = require('../controller/adminController'); // Importing addDoctor properly
+const { addDoctor, getAllDoctors, doctorName,createAdmin, loginAdmin, getAllAdmin } = require('../controller/adminController'); // Importing addDoctor properly
 const router = express.Router();
-const { body } = require('express-validator');
-const { VerifyToken } = require('../middleware/verifyToken');
+const { VerifyToken } = require('../middleware/VerifyToken');
 
 router.get('/doctors', getAllDoctors); // Ensure route matches the controller function
-// router.get('/doctorroute', doctorRouter); // Ensure route matches the controller function
 router.post('/doctors', addDoctor); // Ensure route matches the controller function
 router.get('/alldoctors', doctorName);
 router.post('/admins', VerifyToken,createAdmin);
