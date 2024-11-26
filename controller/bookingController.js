@@ -231,12 +231,12 @@ exports.createBooking = (req, res) => {
       res.status(201).json({
         message: 'User added successfully',
         bookingId: result.insertId,
-        // name:name,
-        // address:address,
-        // phone:phone,
-        // doctor:doctor,
-        // timeSlot:timeSlot,
-        // day:day,      
+        name:name,
+        address:address,
+        phone:phone,
+        doctor:doctor,
+        timeSlot:timeSlot,
+        day:day,
       });
     }
   });

@@ -44,7 +44,7 @@ exports.getAllDoctors = (req, res) => {
 // };
 
 exports.addDoctor = (req, res) => {
-  const { name, docId, phone, address, consultation, experience, specialization, availability } = req.body;
+  const { name, docId, phone, address, consultation, fees,experience, specialization, availability } = req.body;
   console.log(req.body)
   if (!name || !docId) {
     return res.status(400).json({ message: 'DocName and DocId are required' });
@@ -53,7 +53,7 @@ exports.addDoctor = (req, res) => {
   // Convert availability array to JSON string
   const availabilityString = JSON.stringify(availability);  // Or you can use availability.join(',')
 
-  const newDoctor = { name, docId, phone, address, consultation, experience, specialization, availability };
+  const newDoctor = { name, docId, phone, address, fees, consultation, experience, specialization, availability };
 
   Doctor.create(newDoctor, (err, result) => {
     if (err) {
@@ -71,7 +71,7 @@ exports.addDoctor = (req, res) => {
 
 
 exports.doctorName = (req, res) => {
-  const sql = `SELECT name, specialization FROM doctors WHERE status = 'Active'`;
+  const sql = `SELECT name, specialization,fees FROM doctors WHERE status = 'Active'`;
   connection.query(sql, (err, results) => {
     if (err) {
       console.error('Error retrieving doctors:', err);

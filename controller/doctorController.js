@@ -5,7 +5,7 @@ const db = require('../database/db'); // Import your MySQL connection
 // Update doctor details
 exports.doctorsRoutes('/edit/:id', async (req, res) => {
   const doctorId = req.params.id;
-  const { name, specialization, phone, address, consultation, availability } = req.body;
+  const { name, specialization, phone, address, fees,consultation, availability } = req.body;
 
   try {
     // Update doctor basic info in the 'doctors' table
@@ -14,7 +14,7 @@ exports.doctorsRoutes('/edit/:id', async (req, res) => {
       SET name = ?, specialization = ?, phone = ?, address = ?, consultation = ?
       WHERE id = ?
     `;
-    await db.query(updateDoctorQuery, [name, specialization, phone, address, consultation, doctorId], (err) => {
+    await db.query(updateDoctorQuery, [name, specialization, phone,address, fees,consultation, doctorId], (err) => {
       if (err) {
         console.error('Error updating doctor:', err);
         return res.status(500).json({ error: 'Failed to update doctor' });
