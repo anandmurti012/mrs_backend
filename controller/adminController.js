@@ -164,14 +164,14 @@ exports.loginAdmin = async (req, res) => {
           }
 
           const user = results[0];
-          if (bcrypt.compare(password, user.password)) {
+
+          if (await bcrypt.compare(password, user.password)) {
             const email = user.emailId
 
             const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '30d' });
             return res.status(200).json({ user: user, token: token, msg: 'Login successful' });
           } else {
             return res.status(401).json({ msg: "Invalid Password" });
-
           }
         }
       });

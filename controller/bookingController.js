@@ -87,11 +87,12 @@ const Booking = require('../models/bookingModel');
 const db = require('../database/db');
 const connection = require('../database/db');
 
-exports.getAllBookings = async (req, res) => {  
-  const { searchTerm,searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
+exports.getAllBookings = async (req, res) => {
+
+  const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor } = req.query;
 
   // Start building the query
-  let query = "SELECT * FROM bookings WHERE 1=1"; 
+  let query = "SELECT * FROM bookings WHERE 1=1";
   const queryParams = []; // Array to hold query parameters
 
   // Construct the SQL query based on query parameters
@@ -100,15 +101,33 @@ exports.getAllBookings = async (req, res) => {
     const searchTermPattern = `%${searchTerm}%`;
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
   }
+
   if (searchDoctorTerm) {
-    query += " AND (doctor LIKE ?)";
-    const searchTermPattern = `%${searchDoctorTerm}%`;
-    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+    query += " AND doctor LIKE ?";
+    const doctorSearchPattern = `%${searchDoctorTerm}%`;
+    queryParams.push(doctorSearchPattern);
   }
 
   if (status) {
     query += " AND status = ?";
     queryParams.push(status);
+  }
+
+// Filter by selectedDate
+if (selectedDate) { // Check if selectedDate is truthy
+  try {
+    const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
+    query += " AND DATE(timeStamp) = ?";
+    queryParams.push(parsedDate);
+  } catch (error) {
+    console.error("Invalid selectedDate format:", selectedDate);
+    // Optionally, handle invalid date format gracefully
+  }
+}
+
+  if (selectedDoctor) {
+    query += " AND doctor = ?";
+    queryParams.push(selectedDoctor);
   }
 
   try {
@@ -126,9 +145,10 @@ exports.getAllBookings = async (req, res) => {
     console.error("Error fetching bookings:", error); // Log the error
     return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
   }
+
 };
-exports.getConfirmedBookings = async (req, res) => {  
-  const { searchTerm,searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
+exports.getConfirmedBookings = async (req, res) => {
+  const { searchTerm, searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
 
   // Start building the query
   let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
