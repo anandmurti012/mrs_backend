@@ -18,7 +18,7 @@ router.get('/bookings',VerifyToken, getAllBookings);
 router.get('/confirmBookings',VerifyToken, getConfirmedBookings);
 router.get('/bookingdata', getBookingData);
 router.post('/bookings', createBooking);
-router.post('/adminCreates', createBookingByAdmin);
+router.post('/adminCreates',VerifyToken, createBookingByAdmin);
 router.get('/doctorAvailability/:doctor', getDoctorAvailability); 
 
 // Routes for confirming and canceling bookings

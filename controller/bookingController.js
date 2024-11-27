@@ -90,7 +90,6 @@ const connection = require('../database/db');
 exports.getAllBookings = async (req, res) => {
 
   const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor } = req.query;
-
   // Start building the query
   let query = "SELECT * FROM bookings WHERE 1=1";
   const queryParams = []; // Array to hold query parameters
@@ -244,13 +243,17 @@ exports.createBooking = (req, res) => {
 
 // Create a booking by admin
 exports.createBookingByAdmin = (req, res) => {
-  const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName } = req.body;
+  const { name, address, phone, email, gender, age, doctor, day, timeSlot } = req.body;
 
   if (!name || !email || !phone) {
     return res.status(400).json({ message: 'Name, email, and phone are required' });
   }
+const addedBy='admin';
+const adminId=req.rootUser.adminId;
+const adminName=req.rootUser.adminName;
+const status = 'Confirmed';
 
-  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName };
+  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot,status, addedBy, adminId, adminName };
   console.log("newBooking::::;", newBooking);
 
   Booking.createByAdmin(newBooking, (err, result) => {
