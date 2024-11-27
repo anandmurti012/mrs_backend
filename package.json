@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "backendsd",
   "version": "1.0.0",
   "main": "server.js",
   "description": "Backend for Node.js + MySQL application",
