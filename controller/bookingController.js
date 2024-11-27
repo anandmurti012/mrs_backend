@@ -1,97 +1,12 @@
-// const Booking = require('../models/bookingModel');
-
-// // Get all users
-// exports.getAllBookings = (req, res) => {
-//   Booking.getAll((err, results) => {
-//     if (err) {
-//       console.error('Error retrieving Booking:', err);
-//       res.status(500).json({ message: 'Error retrieving users' });
-//     } else {
-//       res.status(200).json(results);
-//     }
-//   });
-// };
-
-// // Create a new user
-// exports.createBooking = (req, res) => {
-//   const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName } = req.body;
-
-//   if (!name || !email || !phone) {
-//     return res.status(400).json({ message: 'Name, email, and phone are required' });
-//   }
-
-//   const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName };
-// console.log("newBooking::::;", newBooking);
-
-// Booking.create(newBooking, (err, result) => {
-//     if (err) {
-//       console.error('Error creating Booking:', err);
-//       res.status(500).json({ message: 'Error creating user' });
-//     } else {
-//       res.status(201).json({
-//         message: 'User added successfully',
-//         bookingId: result.insertId
-//       });
-//     }
-//   });
-// };
-// exports.createBookingByAdmin = (req, res) => {
-//   const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName } = req.body;
-
-//   if (!name || !email || !phone) {
-//     return res.status(400).json({ message: 'Name, email, and phone are required' });
-//   }
-
-//   const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName };
-// console.log("newBooking::::;", newBooking);
-
-// Booking.createByAdmin(newBooking, (err, result) => {
-//     if (err) {
-//       console.error('Error creating Booking:', err);
-//       res.status(500).json({ message: 'Error creating Booking' });
-//     } else {
-//       res.status(201).json({
-//         message: 'Booking done successfully',
-//         bookingId: result.insertId
-//       });
-//     }
-//   });
-// };
-
-// // Fetch doctor availability
-// exports.getDoctorAvailability = (req, res) => {
-//   const doctorName = req.params.doctor;
-//   console.log("Fetching doctor availability for:", doctorName);
-
-//   Booking.getDoctorAvailability(doctorName, (err, doctor) => {
-//     if (err) {
-//       console.error('Error fetching doctor availability:', err);
-//       return res.status(500).json({ message: 'Error fetching availability' });
-//     }
-//     if (doctor) {
-//       console.log(
-//         "Doctor name:", doctor.name,
-//         "Availability:", JSON.stringify(doctor.availability, null, 2)
-//       );
-
-//       return res.status(200).json(doctor);
-//     } else {
-//       return res.status(404).json({ message: 'Doctor not found' });
-//     }
-//   });
-// };
-
-
-//==============================//==============================
 const Booking = require('../models/bookingModel');
 const db = require('../database/db');
 const connection = require('../database/db');
 
 exports.getAllBookings = async (req, res) => {
+  const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor, page } = req.query;
 
-  const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor } = req.query;
   // Start building the query
-  let query = "SELECT * FROM bookings WHERE 1=1";
+  let query = "SELECT * FROM bookings WHERE 1=1 and status='' ";
   const queryParams = []; // Array to hold query parameters
 
   // Construct the SQL query based on query parameters
@@ -112,22 +27,29 @@ exports.getAllBookings = async (req, res) => {
     queryParams.push(status);
   }
 
-// Filter by selectedDate
-if (selectedDate) { // Check if selectedDate is truthy
-  try {
-    const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
-    query += " AND DATE(timeStamp) = ?";
-    queryParams.push(parsedDate);
-  } catch (error) {
-    console.error("Invalid selectedDate format:", selectedDate);
-    // Optionally, handle invalid date format gracefully
+  // Filter by selectedDate
+  if (selectedDate) {
+    try {
+      const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
+      query += " AND DATE(timeStamp) = ?";
+      queryParams.push(parsedDate);
+    } catch (error) {
+      console.error("Invalid selectedDate format:", selectedDate);
+    }
   }
-}
 
   if (selectedDoctor) {
     query += " AND doctor = ?";
     queryParams.push(selectedDoctor);
   }
+
+  // Add pagination
+  const limit = 10;
+  const currentPage = parseInt(page, 10) || 1; // Default to page 1 if not provided
+  const offset = (currentPage - 1) * limit;
+
+  query += " LIMIT ? OFFSET ?";
+  queryParams.push(limit, offset);
 
   try {
     // Use a prepared statement to prevent SQL injection
@@ -136,16 +58,30 @@ if (selectedDate) { // Check if selectedDate is truthy
         console.error("Error executing query:", error); // Log the error
         return res.status(500).json({ msg: error.sqlMessage }); // Send error response
       }
+      
+      connection.query('SELECT COUNT(*) AS total FROM bookings WHERE status="" ',
+        async function (error, countResults, fields) {
+          if (error) {
+            console.error('Error counting entries:', error);
+            return res.status(500).json({ msg: error.sqlMessage });
+          } else {
+            const totalEntries = countResults[0].total;
+            const totalPages = Math.ceil(totalEntries / limit);
 
-      // Return the results as a JSON response
-      return res.status(200).json(results);
+            return res.status(200).json({ results: results, totalPages: totalPages });
+
+          }
+        })
     });
   } catch (error) {
     console.error("Error fetching bookings:", error); // Log the error
     return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
   }
 
+
 };
+
+
 exports.getConfirmedBookings = async (req, res) => {
   const { searchTerm, searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
 
@@ -230,12 +166,12 @@ exports.createBooking = (req, res) => {
       res.status(201).json({
         message: 'User added successfully',
         bookingId: result.insertId,
-        name:name,
-        address:address,
-        phone:phone,
-        doctor:doctor,
-        timeSlot:timeSlot,
-        day:day,
+        name: name,
+        address: address,
+        phone: phone,
+        doctor: doctor,
+        timeSlot: timeSlot,
+        day: day,
       });
     }
   });
@@ -248,12 +184,12 @@ exports.createBookingByAdmin = (req, res) => {
   if (!name || !email || !phone) {
     return res.status(400).json({ message: 'Name, email, and phone are required' });
   }
-const addedBy='admin';
-const adminId=req.rootUser.adminId;
-const adminName=req.rootUser.adminName;
-const status = 'Confirmed';
+  const addedBy = 'admin';
+  const adminId = req.rootUser.adminId;
+  const adminName = req.rootUser.adminName;
+  const status = 'Confirmed';
 
-  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot,status, addedBy, adminId, adminName };
+  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, status, addedBy, adminId, adminName };
   console.log("newBooking::::;", newBooking);
 
   Booking.createByAdmin(newBooking, (err, result) => {
