@@ -83,7 +83,7 @@ exports.getAllBookings = async (req, res) => {
 
 
 exports.getConfirmedBookings = async (req, res) => {
-  const { searchTerm, searchDoctorTerm, status } = req.query; // Corrected variable name to 'status'
+  const { searchTerm, selectedDoctor, selectedDate,status } = req.query; // Corrected variable name to 'status'
 
   // Start building the query
   let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
@@ -96,16 +96,27 @@ exports.getConfirmedBookings = async (req, res) => {
     const searchTermPattern = `%${searchTerm}%`;
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
   }
-  if (searchDoctorTerm) {
-    query += " AND (doctor LIKE ?)";
-    const searchTermPattern = `%${searchDoctorTerm}%`;
-    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
-  }
-
+ 
   if (status) {
     query += " AND status = ?";
     queryParams.push(status);
   }
+
+    // Filter by selectedDate
+    if (selectedDate) {
+      try {
+        const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
+        query += " AND DATE(timeStamp) = ?";
+        queryParams.push(parsedDate);
+      } catch (error) {
+        console.error("Invalid selectedDate format:", selectedDate);
+      }
+    }
+
+    if (selectedDoctor) {
+      query += " AND doctor = ?";
+      queryParams.push(selectedDoctor);
+    }
 
   try {
     // Use a prepared statement to prevent SQL injection
