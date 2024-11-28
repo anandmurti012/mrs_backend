@@ -217,11 +217,15 @@ exports.createBookingByAdmin = (req, res) => {
 
   const newBooking = { name, address, phone, email, gender, age, doctor, fees, day, timeSlot, status, addedBy, adminId, adminName };
 
-  Booking.createByAdmin(newBooking, (err, result) => {
+  Booking.createByAdmin(newBooking,async (err, result) => {
     if (err) {
       console.error('Error creating Booking:', err);
       res.status(500).json({ message: 'Error creating Booking' });
     } else {
+      await transactions('bookingId', 'credit',fees)
+
+
+
       res.status(201).json({
         message: 'Booking done successfully',
         bookingId: result.insertId
