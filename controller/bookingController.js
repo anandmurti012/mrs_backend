@@ -5,8 +5,105 @@ const connection = require('../database/db');
 exports.getAllBookings = async (req, res) => {
   const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor, page } = req.query;
 
+  // Base query, including `status=''` condition
+  let query = "SELECT * FROM bookings WHERE status=''";
+  let countQuery = "SELECT COUNT(*) AS total FROM bookings WHERE status=''";
+  const queryParams = [];
+  const countParams = [];
+
+  // Apply additional filters to both queries
+  if (searchTerm) {
+    query += " AND (name LIKE ? OR bookingId LIKE ? OR phone LIKE ?)";
+    countQuery += " AND (name LIKE ? OR bookingId LIKE ? OR phone LIKE ?)";
+    const searchTermPattern = `%${searchTerm}%`;
+    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+    countParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+
+  }
+
+  if (searchDoctorTerm) {
+    query += " AND doctor LIKE ?";
+    countQuery += " AND doctor LIKE ?";
+    const doctorSearchPattern = `%${searchDoctorTerm}%`;
+    queryParams.push(doctorSearchPattern);
+    countParams.push(doctorSearchPattern);
+  }
+
+  if (status) {
+    query += " AND status = ?";
+    countQuery += " AND status = ?";
+    queryParams.push(status);
+    countParams.push(status);
+  }
+
+  if (selectedDate) {
+    try {
+      const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Format as YYYY-MM-DD
+      query += " AND DATE(timeStamp) = ?";
+      countQuery += " AND DATE(timeStamp) = ?";
+      queryParams.push(parsedDate);
+      countParams.push(parsedDate);
+    } catch (error) {
+      console.error("Invalid selectedDate format:", selectedDate);
+    }
+  }
+
+  if (selectedDoctor) {
+    query += " AND doctor = ?";
+    countQuery += " AND doctor = ?";
+    queryParams.push(selectedDoctor);
+    countParams.push(selectedDoctor);
+  }
+
+  // Add sorting by bookingId in descending order
+  query += " ORDER BY bookingId DESC";
+
+  // Pagination
+  const limit = 10;
+  const currentPage = parseInt(page, 10) || 1; // Default to page 1
+  const offset = (currentPage - 1) * limit;
+  query += " LIMIT ? OFFSET ?";
+  queryParams.push(limit, offset);
+
+  try {
+    // Fetch filtered results
+    connection.query(query, queryParams, (error, results) => {
+      if (error) {
+        console.error("Error executing query:", error);
+        return res.status(500).json({ msg: "Error fetching bookings" });
+      }
+
+      // Fetch total count for pagination
+      connection.query(countQuery, countParams, (error, countResults) => {
+        if (error) {
+          console.error("Error counting entries:", error);
+          return res.status(500).json({ msg: "Error fetching count" });
+        }
+
+        const totalEntries = countResults[0].total;
+        const totalPages = Math.ceil(totalEntries / limit);
+
+        return res.status(200).json({
+          results: results,
+          totalPages: totalPages,
+          currentPage: currentPage,
+          totalEntries: totalEntries,
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return res.status(500).json({ error: "An unexpected error occurred" });
+  }
+};
+
+
+exports.getConfirmedBookings = async (req, res) => {
+  const { searchTerm, selectedDoctor, selectedDate, status } = req.query; // Corrected variable name to 'status'
+
   // Start building the query
-  let query = "SELECT * FROM bookings WHERE 1=1 and status='' ";
+  let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
+
   const queryParams = []; // Array to hold query parameters
 
   // Construct the SQL query based on query parameters
@@ -14,12 +111,6 @@ exports.getAllBookings = async (req, res) => {
     query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
     const searchTermPattern = `%${searchTerm}%`;
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
-  }
-
-  if (searchDoctorTerm) {
-    query += " AND doctor LIKE ?";
-    const doctorSearchPattern = `%${searchDoctorTerm}%`;
-    queryParams.push(doctorSearchPattern);
   }
 
   if (status) {
@@ -42,81 +133,6 @@ exports.getAllBookings = async (req, res) => {
     query += " AND doctor = ?";
     queryParams.push(selectedDoctor);
   }
-
-  // Add pagination
-  const limit = 10;
-  const currentPage = parseInt(page, 10) || 1; // Default to page 1 if not provided
-  const offset = (currentPage - 1) * limit;
-
-  query += " LIMIT ? OFFSET ?";
-  queryParams.push(limit, offset);
-
-  try {
-    // Use a prepared statement to prevent SQL injection
-    connection.query(query, queryParams, (error, results) => {
-      if (error) {
-        console.error("Error executing query:", error); // Log the error
-        return res.status(500).json({ msg: error.sqlMessage }); // Send error response
-      }
-      
-      connection.query('SELECT COUNT(*) AS total FROM bookings WHERE status="" ',
-        async function (error, countResults, fields) {
-          if (error) {
-            console.error('Error counting entries:', error);
-            return res.status(500).json({ msg: error.sqlMessage });
-          } else {
-            const totalEntries = countResults[0].total;
-            const totalPages = Math.ceil(totalEntries / limit);
-
-            return res.status(200).json({ results: results, totalPages: totalPages });
-
-          }
-        })
-    });
-  } catch (error) {
-    console.error("Error fetching bookings:", error); // Log the error
-    return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
-  }
-
-
-};
-
-
-exports.getConfirmedBookings = async (req, res) => {
-  const { searchTerm, selectedDoctor, selectedDate,status } = req.query; // Corrected variable name to 'status'
-
-  // Start building the query
-  let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
-
-  const queryParams = []; // Array to hold query parameters
-
-  // Construct the SQL query based on query parameters
-  if (searchTerm) {
-    query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
-    const searchTermPattern = `%${searchTerm}%`;
-    queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
-  }
- 
-  if (status) {
-    query += " AND status = ?";
-    queryParams.push(status);
-  }
-
-    // Filter by selectedDate
-    if (selectedDate) {
-      try {
-        const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
-        query += " AND DATE(timeStamp) = ?";
-        queryParams.push(parsedDate);
-      } catch (error) {
-        console.error("Invalid selectedDate format:", selectedDate);
-      }
-    }
-
-    if (selectedDoctor) {
-      query += " AND doctor = ?";
-      queryParams.push(selectedDoctor);
-    }
 
   try {
     // Use a prepared statement to prevent SQL injection
@@ -159,15 +175,13 @@ exports.getBookingData = async (req, res) => {
 
 // Create a new user
 exports.createBooking = (req, res) => {
-  const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName } = req.body;
+  const { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName, fees } = req.body;
 
-  console.log("req body:::::>", req.body);
-  if (!name || !email || !phone) {
+  if (!name || !phone) {
     return res.status(400).json({ message: 'Name, email, and phone are required' });
   }
 
-  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName };
-  console.log("newBooking::::;", newBooking);
+  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, addedBy, adminId, adminName, fees };
 
   Booking.create(newBooking, (err, result) => {
     if (err) {
@@ -190,9 +204,9 @@ exports.createBooking = (req, res) => {
 
 // Create a booking by admin
 exports.createBookingByAdmin = (req, res) => {
-  const { name, address, phone, email, gender, age, doctor, day, timeSlot } = req.body;
+  const { name, address, phone, email, gender, age, doctor, fees, day, timeSlot } = req.body;
 
-  if (!name || !email || !phone) {
+  if (!name || !phone) {
     return res.status(400).json({ message: 'Name, email, and phone are required' });
   }
   const addedBy = 'admin';
@@ -200,7 +214,7 @@ exports.createBookingByAdmin = (req, res) => {
   const adminName = req.rootUser.adminName;
   const status = 'Confirmed';
 
-  const newBooking = { name, address, phone, email, gender, age, doctor, day, timeSlot, status, addedBy, adminId, adminName };
+  const newBooking = { name, address, phone, email, gender, age, doctor, fees, day, timeSlot, status, addedBy, adminId, adminName };
   console.log("newBooking::::;", newBooking);
 
   Booking.createByAdmin(newBooking, (err, result) => {
