@@ -1,6 +1,7 @@
 const Booking = require('../models/bookingModel');
 const db = require('../database/db');
 const connection = require('../database/db');
+const { transactions } = require('./transacctionController');
 
 exports.getAllBookings = async (req, res) => {
   const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor, page } = req.query;
@@ -215,7 +216,6 @@ exports.createBookingByAdmin = (req, res) => {
   const status = 'Confirmed';
 
   const newBooking = { name, address, phone, email, gender, age, doctor, fees, day, timeSlot, status, addedBy, adminId, adminName };
-  console.log("newBooking::::;", newBooking);
 
   Booking.createByAdmin(newBooking, (err, result) => {
     if (err) {
@@ -256,10 +256,10 @@ exports.getDoctorAvailability = (req, res) => {
 // Confirm a booking
 exports.confirmBooking = (req, res) => {
   const bookingId = req.params.bookingId;
-  console.log("book:::", bookingId);
+  // console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  db.query(query, ['Confirmed', bookingId], (err, result) => {
+  db.query(query, ['Confirmed', bookingId], async(err, result) => {
     if (err) {
       console.error('Error confirming booking:', err);
       return res.status(500).json({ message: 'Error confirming booking' });
@@ -267,6 +267,9 @@ exports.confirmBooking = (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Booking not found' });
     }
+
+    await transactions(bookingId, 'credit')
+
     return res.status(200).json({ message: 'Booking confirmed successfully' });
   });
 };
@@ -277,7 +280,7 @@ exports.cancelBooking = (req, res) => {
   console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  db.query(query, ['Cancelled', bookingId], (err, result) => {
+  db.query(query, ['Cancelled', bookingId],async (err, result) => {
     if (err) {
       console.error('Error canceling booking:', err);
       return res.status(500).json({ message: 'Error canceling booking' });
@@ -285,6 +288,9 @@ exports.cancelBooking = (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Booking not found' });
     }
+
+    await transactions(bookingId, 'debit')
+
     return res.status(200).json({ message: 'Booking canceled successfully' });
   });
 };
