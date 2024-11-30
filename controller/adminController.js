@@ -103,6 +103,7 @@ exports.createAdmin = async (req, res) => {
 
         // Create new admin object
         const newAdmin = {
+          type:'subAdmin',
           adminName,
           emailId,
           address,

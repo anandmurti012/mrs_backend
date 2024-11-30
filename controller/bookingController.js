@@ -4,11 +4,11 @@ const connection = require('../database/db');
 const { transactions } = require('./transacctionController');
 
 exports.getAllBookings = async (req, res) => {
-  const { searchTerm, searchDoctorTerm, selectedDate, status, selectedDoctor, page } = req.query;
+  const { searchTerm, selectedDate, selectedDoctor } = req.query;
 
   // Base query, including `status=''` condition
-  let query = "SELECT * FROM bookings WHERE status=''";
-  let countQuery = "SELECT COUNT(*) AS total FROM bookings WHERE status=''";
+  let query = "SELECT * FROM bookings WHERE status='' ";
+  let countQuery = "SELECT COUNT(*) AS total FROM bookings WHERE status='' ";
   const queryParams = [];
   const countParams = [];
 
@@ -20,21 +20,6 @@ exports.getAllBookings = async (req, res) => {
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
     countParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
 
-  }
-
-  if (searchDoctorTerm) {
-    query += " AND doctor LIKE ?";
-    countQuery += " AND doctor LIKE ?";
-    const doctorSearchPattern = `%${searchDoctorTerm}%`;
-    queryParams.push(doctorSearchPattern);
-    countParams.push(doctorSearchPattern);
-  }
-
-  if (status) {
-    query += " AND status = ?";
-    countQuery += " AND status = ?";
-    queryParams.push(status);
-    countParams.push(status);
   }
 
   if (selectedDate) {
@@ -60,9 +45,10 @@ exports.getAllBookings = async (req, res) => {
   query += " ORDER BY bookingId DESC";
 
   // Pagination
-  const limit = 10;
-  const currentPage = parseInt(page, 10) || 1; // Default to page 1
-  const offset = (currentPage - 1) * limit;
+  const page = parseInt(req.query.page) || 1; // Default to page 1 if not provided
+  const limit = 10; // Default to 10 entries per page
+  const offset = (page - 1) * limit;
+
   query += " LIMIT ? OFFSET ?";
   queryParams.push(limit, offset);
 
@@ -87,8 +73,6 @@ exports.getAllBookings = async (req, res) => {
         return res.status(200).json({
           results: results,
           totalPages: totalPages,
-          currentPage: currentPage,
-          totalEntries: totalEntries,
         });
       });
     });
@@ -100,25 +84,29 @@ exports.getAllBookings = async (req, res) => {
 
 
 exports.getConfirmedBookings = async (req, res) => {
-  const { searchTerm, selectedDoctor, selectedDate, status } = req.query; // Corrected variable name to 'status'
+  const { searchTerm, selectedDoctor, selectedDate, status, page, pageSize } = req.query; // Corrected variable name to 'status'
 
-  // Start building the query
+  // Set default values for page and pageSize if not provided
+  const currentPage = parseInt(page) || 1; // Default to page 1
+  const currentPageSize = parseInt(pageSize) || 10; // Default to 10 results per page
+  const offset = (currentPage - 1) * currentPageSize; // Calculate the offset
+  
+  // Start building the query for fetching results
   let query = "SELECT * FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
-
   const queryParams = []; // Array to hold query parameters
-
+  
   // Construct the SQL query based on query parameters
   if (searchTerm) {
-    query += " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+    query += " AND (name LIKE ? OR bookingId LIKE ? OR phone LIKE ?)";
     const searchTermPattern = `%${searchTerm}%`;
     queryParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
   }
-
+  
   if (status) {
     query += " AND status = ?";
     queryParams.push(status);
   }
-
+  
   // Filter by selectedDate
   if (selectedDate) {
     try {
@@ -129,28 +117,88 @@ exports.getConfirmedBookings = async (req, res) => {
       console.error("Invalid selectedDate format:", selectedDate);
     }
   }
-
+  
   if (selectedDoctor) {
     query += " AND doctor = ?";
     queryParams.push(selectedDoctor);
   }
-
+  
+  // Add pagination to the query
+  query += " LIMIT ? OFFSET ?";
+  queryParams.push(currentPageSize, offset); // Add limit and offset to queryParams
+  
+  // Count query to get the total number of matching entries
+  let countQuery = "SELECT COUNT(*) AS total FROM bookings WHERE 1=1 AND status IN ('Confirmed', 'Cancelled')";
+  const countParams = []; // Array to hold count query parameters
+  
+  // Apply the same filters to the count query
+  if (searchTerm) {
+    countQuery += " AND (name LIKE ? OR bookingId LIKE ? OR phone LIKE ?)";
+    const searchTermPattern = `%${searchTerm}%`;
+    countParams.push(searchTermPattern, searchTermPattern, searchTermPattern);
+  }
+  
+  if (status) {
+    countQuery += " AND status = ?";
+    countParams.push(status);
+  }
+  
+  if (selectedDate) {
+    try {
+      const parsedDate = new Date(selectedDate).toISOString().split("T")[0]; // Extract YYYY-MM-DD
+      countQuery += " AND DATE(timeStamp) = ?";
+      countParams.push(parsedDate);
+    } catch (error) {
+      console.error("Invalid selectedDate format:", selectedDate);
+    }
+  }
+  
+  if (selectedDoctor) {
+    countQuery += " AND doctor = ?";
+    countParams.push(selectedDoctor);
+  }
+  
   try {
-    // Use a prepared statement to prevent SQL injection
+    // Fetch filtered results
     connection.query(query, queryParams, (error, results) => {
       if (error) {
-        console.error("Error executing query:", error); // Log the error
+        console.error("Error executing query:", error);
         return res.status(500).json({ msg: error.sqlMessage }); // Send error response
       }
-
-      // Return the results as a JSON response
-      return res.status(200).json(results);
+  
+      // Fetch total count for pagination
+      connection.query(countQuery, countParams, (error, countResults) => {
+        if (error) {
+          console.error("Error counting entries:", error);
+          return res.status(500).json({ msg: "Error fetching count" });
+        }
+  
+        const totalEntries = countResults[0].total;
+        const totalPages = Math.ceil(totalEntries / currentPageSize); // Calculate total pages
+  
+        // Return paginated results with total pages and current page info
+        return res.status(200).json({
+          results: results,
+          totalPages: totalPages,
+          currentPage: currentPage,
+          pageSize: currentPageSize,
+          totalEntries: totalEntries,
+        });
+      });
     });
   } catch (error) {
-    console.error("Error fetching bookings:", error); // Log the error
-    return res.status(500).json({ error: "Failed to fetch bookings" }); // Send error response
+    console.error("Unexpected error:", error);
+    return res.status(500).json({ error: "An unexpected error occurred" });
   }
+  
 };
+
+
+
+
+
+
+
 exports.getBookingData = async (req, res) => {
   try {
     // Query to fetch all bookings
@@ -217,12 +265,12 @@ exports.createBookingByAdmin = (req, res) => {
 
   const newBooking = { name, address, phone, email, gender, age, doctor, fees, day, timeSlot, status, addedBy, adminId, adminName };
 
-  Booking.createByAdmin(newBooking,async (err, result) => {
+  Booking.createByAdmin(newBooking, async (err, result) => {
     if (err) {
       console.error('Error creating Booking:', err);
       res.status(500).json({ message: 'Error creating Booking' });
     } else {
-      await transactions('bookingId', 'credit',fees)
+      await transactions('bookingId', 'credit', fees)
 
 
 
@@ -263,7 +311,7 @@ exports.confirmBooking = (req, res) => {
   // console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  db.query(query, ['Confirmed', bookingId], async(err, result) => {
+  db.query(query, ['Confirmed', bookingId], async (err, result) => {
     if (err) {
       console.error('Error confirming booking:', err);
       return res.status(500).json({ message: 'Error confirming booking' });
@@ -284,7 +332,7 @@ exports.cancelBooking = (req, res) => {
   console.log("book:::", bookingId);
 
   const query = 'UPDATE bookings SET status = ? WHERE bookingId = ?';
-  db.query(query, ['Cancelled', bookingId],async (err, result) => {
+  db.query(query, ['Cancelled', bookingId], async (err, result) => {
     if (err) {
       console.error('Error canceling booking:', err);
       return res.status(500).json({ message: 'Error canceling booking' });
