@@ -70,8 +70,8 @@ exports.addDoctor = (req, res) => {
 
 
 
-exports.doctorName = (req, res) => {
-  const sql = `SELECT name, specialization,fees FROM doctors WHERE status = 'Active'`;
+exports.getDoctors = (req, res) => {
+  const sql = `SELECT id,name,specialization,fees FROM doctors WHERE status = 'Active'`;
   connection.query(sql, (err, results) => {
     if (err) {
       console.error('Error retrieving doctors:', err);

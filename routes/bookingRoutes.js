@@ -17,9 +17,12 @@ const router = express.Router();
 router.get('/bookings',VerifyToken, getAllBookings);
 router.get('/confirmBookings',VerifyToken, getConfirmedBookings);
 router.get('/bookingdata', getBookingData);
+
+// user booking
 router.post('/bookings', createBooking);
 router.post('/adminCreates',VerifyToken, createBookingByAdmin);
-router.get('/doctorAvailability/:doctor', getDoctorAvailability); 
+
+router.get('/doctorAvailability/:doctorId', getDoctorAvailability); 
 
 // Routes for confirming and canceling bookings
 router.put('/bookings/:bookingId/confirm', confirmBooking);  // Confirm booking
