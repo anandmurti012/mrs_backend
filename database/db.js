@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   host: '172.105.48.130',
   user: 'collegec_mrshospital',
   password: 'm2qgKxu?!~ly',
-  database: 'collegec_mrs_hospital',
+  database: 'collegec_mrs_booking', //live: collegec_mrs_booking test: collegec_mrs_hospital
   multipleStatements: true
 });
 
