@@ -26,25 +26,8 @@ exports.getAllDoctors = (req, res) => {
   });
 };
 
-// exports.doctorRouter = (req, res) => {
-//   const query = `SELECT * FROM doctors WHERE status = 'Active'`;
-
-//   try {
-//     connection.query(query, (error, results) => {
-//       if (error) {
-//         console.error("Error fetching doctors:", error);
-//         return res.status(500).json({ msg: error.sqlMessage });
-//       }
-//       res.status(200).json(results);
-//     });
-//   } catch (error) {
-//     console.error("Error fetching doctors:", error);
-//     res.status(500).json({ error: "Failed to fetch doctors" });
-//   }
-// };
-
 exports.addDoctor = (req, res) => {
-  const { name, docId, phone, address, consultation, fees,experience, specialization, availability } = req.body;
+  const { name, docId, phone, address, consultation, fees, experience, specialization, availability } = req.body;
   console.log(req.body)
   if (!name || !docId) {
     return res.status(400).json({ message: 'DocName and DocId are required' });
@@ -103,7 +86,7 @@ exports.createAdmin = async (req, res) => {
 
         // Create new admin object
         const newAdmin = {
-          type:'subAdmin',
+          type: 'subAdmin',
           adminName,
           emailId,
           address,
@@ -180,5 +163,74 @@ exports.loginAdmin = async (req, res) => {
   } catch (error) {
     console.log('Backend Server Error', error);
     return res.status(500).json({ msg: "Backend Server Error" });
+  }
+}
+
+module.exports.adminController = {
+  signup: async (req, res) => {
+    try {
+
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
+  },
+  login: async (req, res) => {
+    try {
+
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
+  },
+  sendPasswordRecoveryEmail: async (req, res) => {
+    try {
+      
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
+  },
+  resetPassword: async (req, res) => {
+    try {
+      
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
+  },
+  getAdmins: async (req, res) => {
+    try {
+      const { id } = req.rootUser;
+
+      connection.query(`SELECT * FROM admins WHERE id != ${id}`, function (err, results) {
+        if (err) {
+          console.log(err)
+          return res.status(500).json({ msg: 'Error Updating Information.' });
+        };
+        return res.status(200).json({ results: results, msg: 'Successfully Update' });
+      });
+
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
+  },
+  deleteAdmin: async (req, res) => {
+    try {
+      const { id, fileName } = req.body
+
+      connection.query(`DELETE FROM admins WHERE id='${id}'`, async (error, results) => {
+        if (error) {
+          console.log(error);
+          return res.status(500).json({ msg: error.sqlMessage });
+        } else {
+          return res.status(200).json({ msg: "success" });
+        }
+      });
+    } catch (error) {
+      console.log('Backend Server Error', error);
+      return res.status(500).json({ msg: "Backend Server Error" });
+    }
   }
 }
