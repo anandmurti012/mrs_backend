@@ -124,7 +124,7 @@ exports.getConfirmedBookings = async (req, res) => {
   }
 
   query += " ORDER BY bookingId DESC"; // Fetch results in descending order by bookingId
-  
+
   // Add pagination to the query
   query += " LIMIT ? OFFSET ?";
   queryParams.push(currentPageSize, offset); // Add limit and offset to queryParams
@@ -194,12 +194,6 @@ exports.getConfirmedBookings = async (req, res) => {
   }
 
 };
-
-
-
-
-
-
 
 exports.getBookingData = async (req, res) => {
   try {
@@ -277,6 +271,94 @@ exports.createBooking = (req, res) => {
 };
 
 // Create a booking by admin
+// exports.createBookingByAdmin = (req, res) => {
+//   const { name, address, phone, email, gender, age, doctor, day, timeSlot } = req.body;
+
+//   const addedBy = 'admin';
+//   const adminId = req.rootUser.adminId;
+//   const adminName = req.rootUser.adminName;
+//   const status = 'Confirmed';
+
+//   const docId = doctor
+
+//   // Step 2: Fetch doctor data and check the consultation limit
+//   const sqlQ = 'SELECT consultation FROM doctors WHERE id = ?';
+//   db.query(sqlQ, [docId], (error, result) => {
+//     if (error) {
+//       console.error("Error doctor consultation limit:", error); // Log the error
+//       return res.status(500).json({ message: "Error doctor consultation limit" }); // Send error response
+//     }
+
+//     if (result.length > 0) {
+
+//       // Step 3: checking todays bookings
+//       const checkQuery = `SELECT COUNT(*) AS count FROM bookings WHERE status = 'Confirmed' AND DATE(updatedAt) = CURDATE() AND docId = ?`;
+
+//       db.query(checkQuery, [docId], async (err, results) => {
+//         if (err) {
+//           console.error('Error checking today\'s confirmed bookings:', err);
+//           return res.status(500).json({ message: 'Error fetching booking count' });
+//         }
+
+//         const fixedLimit = result[0]?.consultation
+//         const confirmedToday = results[0].count;     //Error: getting result 0 from 
+//         console.log("confirmedToday::: new", confirmedToday);
+
+//         if (confirmedToday > fixedLimit) {
+//           return res.status(400).json({ message: `Booking limit of ${fixedLimit} for today has been exceeded. No more bookings can be confirmed.` });
+//         } else {
+//           const sql = 'SELECT name,specialization,fees FROM doctors WHERE id = ?';
+//           db.query(sql, [docId], (error, result) => {
+//             if (error) {
+//               console.error("Error fetching booking data:", error); // Log the error
+//               return res.status(500).json({ message: "Error fetching booking data" }); // Send error response
+//             }
+
+//             if (result.length > 0) {
+//               const doctorName = result[0]?.name
+//               const specialization = result[0]?.specialization
+//               const fees = result[0]?.fees
+
+//               if (!name || !phone) {
+//                 return res.status(400).json({ message: 'Name, email, and phone are required' });
+//               }
+
+//               const doctor = doctorName;
+
+//               const newBooking = { name, address, phone, email, gender, age, day, doctor, docId, specialization, timeSlot, status, addedBy, adminId, adminName, fees };
+//               console.log("adminId::::", newBooking);
+
+//               Booking.create(newBooking, (err, result) => {
+//                 if (err) {
+//                   console.error('Error creating Booking:', err);
+//                   res.status(500).json({ message: 'Error creating user' });
+//                 } else {
+//                   res.status(201).json({
+//                     message: 'User added successfully',
+//                     bookingId: result.insertId,
+//                     name: name,
+//                     address: address,
+//                     phone: phone,
+//                     doctor: doctor,
+//                     docId: docId,
+//                     specialization: specialization,
+//                     timeSlot: timeSlot,
+//                     day: day,
+//                   });
+//                 }
+//               });
+//             } else {
+//               return res.status(404).json({ message: "Invalid Doctor" }); // Send error response
+//             }
+//           })
+//         }
+//       })
+//     } else {
+//       return res.status(404).json({ message: "Invalid Doctor" }); // Send error response
+//     }
+//   });
+// };
+//======================================updated============================
 exports.createBookingByAdmin = (req, res) => {
   const { name, address, phone, email, gender, age, doctor, day, timeSlot } = req.body;
 
@@ -285,20 +367,23 @@ exports.createBookingByAdmin = (req, res) => {
   const adminName = req.rootUser.adminName;
   const status = 'Confirmed';
 
-  const docId = doctor
+  const docId = doctor;
 
-  // Step 2: Fetch doctor data and check the consultation limit
+  // Step 1: Fetch doctor data and check the consultation limit
   const sqlQ = 'SELECT consultation FROM doctors WHERE id = ?';
   db.query(sqlQ, [docId], (error, result) => {
     if (error) {
-      console.error("Error doctor consultation limit:", error); // Log the error
-      return res.status(500).json({ message: "Error doctor consultation limit" }); // Send error response
+      console.error("Error doctor consultation limit:", error); 
+      return res.status(500).json({ message: "Error doctor consultation limit" });
     }
 
     if (result.length > 0) {
-
-      // Step 3: checking todays bookings
-      const checkQuery = `SELECT COUNT(*) AS count FROM bookings WHERE status = 'Confirmed' AND DATE(updatedAt) = CURDATE() AND docId = ?`;
+      // Step 2: Check today's bookings for the doctor
+      const checkQuery = `SELECT COUNT(*) AS count 
+                          FROM bookings 
+                          WHERE status = 'Confirmed' 
+                            AND DATE(updatedAt) = CURDATE() 
+                            AND docId = ?`;
 
       db.query(checkQuery, [docId], async (err, results) => {
         if (err) {
@@ -306,62 +391,82 @@ exports.createBookingByAdmin = (req, res) => {
           return res.status(500).json({ message: 'Error fetching booking count' });
         }
 
-        const fixedLimit = result[0]?.consultation
-        const confirmedToday = results[0].count;
+        const fixedLimit = result[0]?.consultation; // Doctor's consultation limit
+        const confirmedToday = results[0].count;  // Count of today's confirmed bookings
+        console.log("confirmedToday:::", confirmedToday);
 
-        if (confirmedToday > fixedLimit) {
-          return res.status(400).json({ message: `Booking limit of ${fixedLimit} for today has been exceeded. No more bookings can be confirmed.` });
+        // Step 3: Validate against consultation limit
+        if (confirmedToday >= fixedLimit) {
+          return res.status(400).json({
+            message: `Booking limit of ${fixedLimit} for today has been exceeded. No more bookings can be confirmed.`
+          });
         } else {
-          const sql = 'SELECT name,specialization,fees FROM doctors WHERE id = ?';
-          db.query(sql, [docId], (error, result) => {
+          const doctorDetailsQuery = 'SELECT name, specialization, fees FROM doctors WHERE id = ?';
+          db.query(doctorDetailsQuery, [docId], (error, result) => {
             if (error) {
-              console.error("Error fetching booking data:", error); // Log the error
-              return res.status(500).json({ message: "Error fetching booking data" }); // Send error response
+              console.error("Error fetching doctor data:", error); 
+              return res.status(500).json({ message: "Error fetching doctor data" });
             }
 
             if (result.length > 0) {
-              const doctorName = result[0]?.name
-              const specialization = result[0]?.specialization
-              const fees = result[0]?.fees
+              const doctorName = result[0]?.name;
+              const specialization = result[0]?.specialization;
+              const fees = result[0]?.fees;
 
               if (!name || !phone) {
-                return res.status(400).json({ message: 'Name, email, and phone are required' });
+                return res.status(400).json({ message: 'Name and phone are required' });
               }
 
               const doctor = doctorName;
 
-              const newBooking = { name, address, phone, email, gender, age, day, doctor, docId, specialization, timeSlot, status, addedBy, adminId, adminName, fees };
+              // Step 4: Prepare new booking data
+              const newBooking = {
+                name,
+                address,
+                phone,
+                email,
+                gender,
+                age,
+                day,
+                doctor,
+                docId,
+                specialization,
+                timeSlot,
+                status,
+                addedBy,
+                adminId,
+                adminName,
+                fees,
+                count: confirmedToday + 1 // Increment count for the new booking
+              };
+              console.log("adminId::::", newBooking);
 
-              Booking.create(newBooking, (err, result) => {
+              // Step 5: Insert the new booking into the database
+              const insertQuery = 'INSERT INTO bookings SET ?';
+              db.query(insertQuery, newBooking, (err, result) => {
                 if (err) {
-                  console.error('Error creating Booking:', err);
-                  res.status(500).json({ message: 'Error creating user' });
+                  console.error('Error creating booking:', err);
+                  return res.status(500).json({ message: 'Error creating booking' });
                 } else {
-                  res.status(201).json({
-                    message: 'User added successfully',
+                  return res.status(201).json({
+                    message: 'Booking added successfully',
                     bookingId: result.insertId,
-                    name: name,
-                    address: address,
-                    phone: phone,
-                    doctor: doctor,
-                    docId: docId,
-                    specialization: specialization,
-                    timeSlot: timeSlot,
-                    day: day,
+                    ...newBooking // Return all the booking details
                   });
                 }
               });
             } else {
-              return res.status(404).json({ message: "Invalid Doctor" }); // Send error response
+              return res.status(404).json({ message: "Invalid Doctor" });
             }
-          })
+          });
         }
-      })
+      });
     } else {
-      return res.status(404).json({ message: "Invalid Doctor" }); // Send error response
+      return res.status(404).json({ message: "Invalid Doctor" });
     }
   });
 };
+//=======================================
 
 // Fetch doctor availability
 exports.getDoctorAvailability = (req, res) => {
